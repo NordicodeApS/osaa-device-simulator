@@ -43,7 +43,8 @@ export class Simulator {
 
   public async run(): Promise<void> {
     this.log("Starting simulator");
-    this.log("- Sending a message every " + this.interval / 1000 + " seconds");
+    this.log("- Creating device with ID: " + this.device.getDeviceId());
+    this.log("- A message with be sent every: " + this.interval / 1000 + " seconds");
 
     this.client = await this.device.getClient();
 

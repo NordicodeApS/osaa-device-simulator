@@ -1,6 +1,6 @@
 {
     "name": "osaa-device-simulator",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "private": true,
     "main": "index.ts",
     "bin": {
@@ -16,6 +16,7 @@
         "azure-iot-provisioning-device": "1.9.1",
         "azure-iot-provisioning-device-mqtt": "1.8.1",
         "azure-iot-security-symmetric-key": "1.8.1",
+        "dotenv": "^16.0.3",
         "https-proxy-agent": "5.0.0",
         "yargs": "^17.6.0"
     },

@@ -53,7 +53,7 @@ iv2go-simulator --help
 Example:
 
 ```bash
-iv2go-simulator -d [device ID] -k [device key] -i [scope ID]
+iv2go-simulator -d [device ID] -k [device key] -s [ID scope] -m [model ID] -i 30
 ```
 
 ## Device key
@@ -72,3 +72,23 @@ az iot central device compute-device-key --primary-key <enrollment group primary
 The enrollment group primary key is the primary key of the Shared access signature of an enrollment group (also called Device connection group) that uses the SAS attestation type.
 
 Read more: [https://learn.microsoft.com/en-gb/azure/iot-central/core/concepts-device-authentication#sas-enrollment-group](https://learn.microsoft.com/en-gb/azure/iot-central/core/concepts-device-authentication#sas-enrollment-group)
+
+## Environment variables
+
+If you find you're using the same values for `idScope` and `modelId` over and over again, or you don't want to compute device keys all the time, consider creating a `.env` file with some general values.
+
+If you want to leave out the `deviceKey` option and instead generate a device key on-the-fly, add this variable:
+```
+DEVICE_GROUP_KEY=<enrollment group primary key>
+```
+
+You can also leave out the `idScope` and `modelId` options and instead add these variables:
+```
+DEVICE_ID_SCOPE=<ID scope>
+DEVICE_MODEL_ID=<model ID>
+```
+
+If you add all the env variables above, you can launch a simulator simply by running:
+```bash
+iv2go-simulator -d [device ID]
+```
