@@ -17,8 +17,8 @@ export class IoTCentralDevice {
 
   constructor(
     logFunc: (message: string) => void,
-    scopeId: string,
     deviceId: string,
+    scopeId: string,
     deviceKey: string,
     modelId: string
   ) {
@@ -49,10 +49,7 @@ export class IoTCentralDevice {
     let connectionString = "";
 
     try {
-      const provisioningSecurityClient = new SymmetricKeySecurityClient(
-        this.deviceId,
-        this.deviceKey
-      );
+      const provisioningSecurityClient = new SymmetricKeySecurityClient(this.deviceId, this.deviceKey);
 
       const provisioningClient = ProvisioningDeviceClient.create(
         dpsProvisioningHost,
@@ -74,7 +71,7 @@ export class IoTCentralDevice {
           }
 
           this.log("- DPS registration succeeded:");
-          this.log(dpsResult);
+          // this.log(dpsResult);
 
           return resolve(
             `HostName=${dpsResult.assignedHub};DeviceId=${dpsResult.deviceId};SharedAccessKey=${this.deviceKey}`
@@ -82,9 +79,8 @@ export class IoTCentralDevice {
         });
       });
     } catch (ex) {
-      this.log(
-        `- Failed to instantiate client interface from configuration: ${ex.message}`
-      );
+      this.log(`- Failed to instantiate client interface from configuration:`);
+      this.log(ex);
     }
 
     return connectionString;
@@ -94,15 +90,10 @@ export class IoTCentralDevice {
     this.log("Connecting the device...");
 
     try {
-      this.deviceClient = await IoTDeviceClient.fromConnectionString(
-        connectionString,
-        Protocol
-      );
+      this.deviceClient = await IoTDeviceClient.fromConnectionString(connectionString, Protocol);
 
       if (!this.deviceClient) {
-        this.log(
-          `- Failed to connect device client interface from connection string - device: ${this.deviceId}`
-        );
+        this.log(`- Failed to connect device client interface from connection string - device: ${this.deviceId}`);
       } else {
         this.log(`- IoT Central successfully connected device: ${this.deviceId}`);
       }

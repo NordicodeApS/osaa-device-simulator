@@ -1,6 +1,11 @@
 import { Client as IoTDeviceClient, Message, Twin } from "azure-iot-device";
 import { IoTCentralDevice } from "./device";
 
+interface DeltaObject {
+  oad?: boolean;
+  isSimulator?: boolean;
+}
+
 export class Simulator {
   private log: (message: any) => void;
   private device: IoTCentralDevice;
@@ -8,18 +13,18 @@ export class Simulator {
   private interval: number;
   private client: IoTDeviceClient;
 
-  // Telemetry properties
+  // Telemetry
   private messageTrackingId: number;
   private batteryLevel: number;
   private timeLeftOfTreatment: number;
   private liquidLeftInBag: number;
   private flowrate: number;
 
-  constructor(
-    logFunc: (message: string) => void,
-    device: IoTCentralDevice,
-    interval: number = 2
-  ) {
+  // Properties
+  private oad: boolean;
+  private isSimulator: boolean;
+
+  constructor(logFunc: (message: string) => void, device: IoTCentralDevice, interval: number = 2) {
     this.log = logFunc;
     this.device = device;
     this.interval = interval * 1000;
@@ -30,6 +35,10 @@ export class Simulator {
     this.timeLeftOfTreatment = 12 * 60 * 60; // 12 hours in seconds
     this.liquidLeftInBag = 840;
     this.flowrate = 70;
+
+    // Initial properties
+    this.oad = false;
+    this.isSimulator = true;
   }
 
   public async run(): Promise<void> {
@@ -64,37 +73,39 @@ export class Simulator {
         this.log("Sending message: " + message.getData());
 
         this.client.sendEvent(message, this.printResultFor("send"));
-
-        this.log("Getting device twin...");
-
-        this.client.getTwin((err: Error, twin: Twin): void => {
-          if (err) {
-            this.log("- Could not get twin");
-            this.log(err);
-          } else {
-            this.log("- Got the twin");
-            this.log("Reporting properties...");
-
-            // create a patch to send to the hub
-            let patch = {
-              DeviceId: this.device.getDeviceId(),
-              messageTrackingId: this.messageTrackingId,
-              oad: false,
-            };
-
-            // send the patch
-            twin.properties.reported.update(patch, (err: Error): void => {
-              if (err) {
-                this.log("- An error occurred");
-                this.log(err);
-              } else {
-                this.log("- Twin state reported");
-              }
-            });
-          }
-        });
       }, this.interval);
     }
+
+    this.log("Getting device twin...");
+
+    this.client.getTwin((err: Error, twin: Twin): void => {
+      if (err) {
+        this.log("- Could not get twin");
+        this.log(err);
+      } else {
+        this.log("- Got the twin");
+
+        twin.on("properties.desired", (delta: DeltaObject): void => {
+          this.log("New desired properties received:");
+          this.log(JSON.stringify(delta));
+
+          for (const [key, value] of Object.entries(delta)) {
+            if (key === "oad") {
+              this.oad = value;
+            }
+
+            if (key === "isSimulator") {
+              this.isSimulator = value;
+            }
+          }
+
+          this.sendProperties(twin);
+        });
+
+        // Send the properties once
+        this.sendProperties(twin);
+      }
+    });
   }
 
   public disconnectHandler(): void {
@@ -119,8 +130,12 @@ export class Simulator {
 
   public printResultFor(op: any): (err: any, res: any) => void {
     return (err: any, res: any): void => {
-      if (err) this.log(op + " error: " + err.toString());
-      if (res) this.log(op + " status: " + res.constructor.name);
+      if (err) {
+        this.log(op + " error: " + err.toString());
+      }
+      if (res) {
+        // this.log(op + " status: " + res.constructor.name);
+      }
     };
   }
 
@@ -135,24 +150,41 @@ export class Simulator {
     this.timeLeftOfTreatment = this.timeLeftOfTreatment - this.interval / 1000;
 
     // Liquid left is determined by the flowrate and the interval of the messages
-    this.liquidLeftInBag =
-      this.liquidLeftInBag - (this.flowrate / 60 / 60) * (this.interval / 1000);
+    this.liquidLeftInBag = this.liquidLeftInBag - (this.flowrate / 60 / 60) * (this.interval / 1000);
 
     const data: string = JSON.stringify({
       batteryLevel: Math.round(this.batteryLevel),
-      timeLeftOfTreatment: new Date(1000 * this.timeLeftOfTreatment)
-        .toISOString()
-        .substring(11, 16), // format as "HH:mm"
+      timeLeftOfTreatment: this.timeLeftOfTreatment,
+      // timeLeftOfTreatment: new Date(1000 * this.timeLeftOfTreatment).toISOString().substring(11, 16), // format as "HH:mm"
       liquidLeftInBag: Math.round(this.liquidLeftInBag),
       flowrate: this.flowrate,
     });
 
     const message: Message = new Message(data);
 
-    // message.properties.add(
-    //   "messageTrackingId", this.messageTrackingId
-    // );
+    message.properties.add("iothub-creation-time-utc", new Date().toISOString());
 
     return message;
+  }
+
+  public sendProperties(twin: any): void {
+    this.log("Reporting properties...");
+
+    // create a patch to send to the hub
+    let patch = {
+      oad: this.oad,
+      isSimulator: this.isSimulator,
+    };
+
+    // send the patch
+    twin.properties.reported.update(patch, (err: Error): void => {
+      if (err) {
+        this.log("- An error occurred");
+        this.log(err);
+      } else {
+        this.log("- Twin state reported");
+        this.log(JSON.stringify(patch));
+      }
+    });
   }
 }

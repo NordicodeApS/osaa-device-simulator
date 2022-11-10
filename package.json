@@ -1,6 +1,6 @@
 {
     "name": "osaa-device-simulator",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "private": true,
     "main": "index.ts",
     "bin": {
@@ -10,13 +10,12 @@
     "license": "MIT",
     "dependencies": {
         "@azure/storage-blob": "^12.8.0",
-        "azure-iot-device": "1.17.8",
-        "azure-iot-device-amqp": "1.13.8",
-        "azure-iot-device-http": "1.13.8",
-        "azure-iot-device-mqtt": "1.15.8",
-        "azure-iot-provisioning-device": "1.8.12",
-        "azure-iot-provisioning-device-mqtt": "1.7.12",
-        "azure-iot-security-symmetric-key": "1.7.12",
+        "azure-iot-common": "1.13.1",
+        "azure-iot-device": "1.18.1",
+        "azure-iot-device-mqtt": "1.16.1",
+        "azure-iot-provisioning-device": "1.9.1",
+        "azure-iot-provisioning-device-mqtt": "1.8.1",
+        "azure-iot-security-symmetric-key": "1.8.1",
         "https-proxy-agent": "5.0.0",
         "yargs": "^17.6.0"
     },
@@ -31,6 +30,7 @@
         "typescript": "4.4.4"
     },
     "scripts": {
+        "dev": "tsc -p . -w",
         "prebuild": "npm run lint",
         "build": "tsc -p .",
         "lint": "tslint -c tslint.json --project tsconfig.json",
