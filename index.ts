@@ -4,7 +4,7 @@
 import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 dotenv.config();
 
-import { exec } from "child_process";
+import { exec, ExecException } from "child_process";
 import { IoTCentralDevice } from "./device";
 import { Simulator } from "./simulator";
 
@@ -61,13 +61,13 @@ async function asyncMain(): Promise<void> {
     startSimulator(argv.deviceKey);
   } else {
     if (!process.env.DEVICE_GROUP_KEY) {
-      log("No device group key set. Have you created a .env file?");
+      log("No device group key set. You must create a .env file with a DEVICE_GROUP_KEY variable.");
       return;
     }
 
-    execute(`az iot central device compute-device-key --primary-key ${process.env.DEVICE_GROUP_KEY} --device-id ${argv.deviceId}`, (deviceKey: string) => {
-      startSimulator(deviceKey);
-    });
+    const deviceKey = await generateDeviceKey(argv.deviceId);
+
+    startSimulator(deviceKey);
   }
 }
 
@@ -84,9 +84,20 @@ function log(message: any): void {
   if (!argv.quiet) console.log(message);
 }
 
-function execute(command: string, callback: Function): void {
-  exec(command, function (error: any, stdout: string, stderr: any): void {
-    callback(stdout);
+function generateDeviceKey(deviceId: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(
+      `az iot central device compute-device-key --primary-key ${process.env.DEVICE_GROUP_KEY} --device-id ${deviceId}`,
+      function (error: ExecException | null, stdout: string, stderr: string): void {
+        if (error) {
+          throw error;
+        } else if (stderr) {
+          reject(stderr);
+        } else {
+          resolve(stdout);
+        }
+      }
+    );
   });
 }
 
