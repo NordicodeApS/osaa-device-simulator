@@ -79,7 +79,7 @@ function startSimulator(deviceKey: string): void {
   simulator.run();
 }
 
-function log(message: any): void {
+function log(message: string): void {
   // eslint-disable-next-line no-console
   if (!argv.quiet) console.log(message);
 }
@@ -96,7 +96,7 @@ function generateDeviceKey(deviceId: string): Promise<string> {
         } else {
           resolve(stdout);
         }
-      }
+      },
     );
   });
 }

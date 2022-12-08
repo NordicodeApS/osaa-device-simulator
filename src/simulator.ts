@@ -7,7 +7,7 @@ interface DeltaObject {
 }
 
 export class Simulator {
-  private log: (message: any) => void;
+  private log: (message: string) => void;
   private device: IoTCentralDevice;
   private intervalTimeout: NodeJS.Timeout;
   private interval: number;
@@ -43,8 +43,8 @@ export class Simulator {
 
   public async run(): Promise<void> {
     this.log("Starting simulator");
-    this.log("- Creating device with ID: " + this.device.getDeviceId());
-    this.log("- A message with be sent every: " + this.interval / 1000 + " seconds");
+    this.log(`- Creating device with ID: ${this.device.getDeviceId()}`);
+    this.log(`- A message with be sent every: ${this.interval / 1000} seconds"`);
 
     this.client = await this.device.getClient();
 
@@ -55,11 +55,11 @@ export class Simulator {
 
     this.client.on("connect", () => this.connectHandler());
     this.client.on("disconnect", () => this.disconnectHandler());
-    this.client.on("message", (msg: any) => this.messageHandler(msg));
-    this.client.on("error", (err: any) => this.errorHandler(err));
+    this.client.on("message", (msg: Message) => this.messageHandler(msg));
+    this.client.on("error", (err: { message: string }) => this.errorHandler(err));
 
     this.client.open().catch((err) => {
-      this.log("Could not connect: " + err.message);
+      this.log(`Could not connect: ${err.message}`);
     });
   }
 
@@ -71,7 +71,7 @@ export class Simulator {
       this.intervalTimeout = setInterval(() => {
         const message = this.generateMessage();
 
-        this.log("Sending message: " + message.getData());
+        this.log(`Sending message: ${message.getData()}`);
 
         this.client.sendEvent(message, this.printResultFor("send"));
       }, this.interval);
@@ -82,7 +82,7 @@ export class Simulator {
     this.client.getTwin((err: Error, twin: Twin): void => {
       if (err) {
         this.log("- Could not get twin");
-        this.log(err);
+        this.log(err.message);
       } else {
         this.log("- Got the twin");
 
@@ -119,20 +119,20 @@ export class Simulator {
     });
   }
 
-  public messageHandler(msg: any): void {
-    this.log("Id: " + msg.messageId + " Body: " + msg.data);
+  public messageHandler(msg: Message): void {
+    this.log(`Id: ${msg.messageId} Body: ${msg.data}`);
 
     this.client.complete(msg, this.printResultFor("completed"));
   }
 
-  public errorHandler(err: any): void {
+  public errorHandler(err: { message: string }): void {
     this.log(err.message);
   }
 
-  public printResultFor(op: any): (err: any, res: any) => void {
-    return (err: any, res: any): void => {
+  public printResultFor(op: string): (err: object, res: object) => void {
+    return (err: object, res: object): void => {
       if (err) {
-        this.log(op + " error: " + err.toString());
+        this.log(`${op} error: ${err.toString()}`);
       }
       if (res) {
         // this.log(op + " status: " + res.constructor.name);
@@ -168,7 +168,7 @@ export class Simulator {
     return message;
   }
 
-  public sendProperties(twin: any): void {
+  public sendProperties(twin: Twin): void {
     this.log("Reporting properties...");
 
     // create a patch to send to the hub
@@ -181,7 +181,7 @@ export class Simulator {
     twin.properties.reported.update(patch, (err: Error): void => {
       if (err) {
         this.log("- An error occurred");
-        this.log(err);
+        this.log(err.message);
       } else {
         this.log("- Twin state reported");
         this.log(JSON.stringify(patch));

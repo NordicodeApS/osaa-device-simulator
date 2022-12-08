@@ -7,7 +7,7 @@ import { Client as IoTDeviceClient } from "azure-iot-device";
 const dpsProvisioningHost = "global.azure-devices-provisioning.net";
 
 export class IoTCentralDevice {
-  private log: (message: any) => void;
+  private log: (message: string) => void;
   private scopeId: string;
   private deviceId: string;
   private deviceKey: string;
@@ -20,7 +20,7 @@ export class IoTCentralDevice {
     deviceId: string,
     scopeId: string,
     deviceKey: string,
-    modelId: string
+    modelId: string,
   ) {
     this.log = logFunc;
     this.deviceId = deviceId;
@@ -35,7 +35,7 @@ export class IoTCentralDevice {
     const connectionString = await this.provisionDeviceClient();
 
     if (connectionString) {
-      this.log("- Connection string is: " + connectionString);
+      this.log(`- Connection string is: ${connectionString}`);
 
       await this.connectDeviceClient(connectionString);
     } else {
@@ -55,7 +55,7 @@ export class IoTCentralDevice {
         dpsProvisioningHost,
         this.scopeId,
         new ProvisioningTransport(),
-        provisioningSecurityClient
+        provisioningSecurityClient,
       );
 
       const provisioningPayload = {
@@ -74,12 +74,12 @@ export class IoTCentralDevice {
           // this.log(dpsResult);
 
           return resolve(
-            `HostName=${dpsResult.assignedHub};DeviceId=${dpsResult.deviceId};SharedAccessKey=${this.deviceKey}`
+            `HostName=${dpsResult.assignedHub};DeviceId=${dpsResult.deviceId};SharedAccessKey=${this.deviceKey}`,
           );
         });
       });
     } catch (ex) {
-      this.log(`- Failed to instantiate client interface from configuration:`);
+      this.log("- Failed to instantiate client interface from configuration:");
       this.log(ex);
     }
 

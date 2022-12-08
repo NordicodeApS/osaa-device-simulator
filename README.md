@@ -56,6 +56,10 @@ Example:
 iv2go-simulator -d [device ID] -k [device key] -s [ID scope] -m [model ID] -i 30
 ```
 
+>Note: if you get a "permission denied" error, you might need to make the js file executable.  
+>You can do this by running: `chmod +x dist/index.js`
+
+
 ## Device key
 
 The simulator connections to IoT Central by using the Shared access signature method.
