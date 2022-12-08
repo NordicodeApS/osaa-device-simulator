@@ -1,5 +1,6 @@
 import { Client as IoTDeviceClient, Message, Twin } from "azure-iot-device";
 import { IoTCentralDevice } from "./device";
+import { SystemState } from "./enums";
 
 interface DeltaObject {
   oad?: boolean;
@@ -155,8 +156,8 @@ export class Simulator {
 
     const data: string = JSON.stringify({
       batteryLevel: Math.round(this.batteryLevel),
+      systemState: SystemState.Active,
       timeLeftOfTreatment: this.timeLeftOfTreatment,
-      // timeLeftOfTreatment: new Date(1000 * this.timeLeftOfTreatment).toISOString().substring(11, 16), // format as "HH:mm"
       liquidLeftInBag: Math.round(this.liquidLeftInBag),
       flowrate: this.flowrate,
     });
