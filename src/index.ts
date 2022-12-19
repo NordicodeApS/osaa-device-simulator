@@ -37,6 +37,18 @@ const { argv } = require("yargs")
     type: "number",
     default: 10,
   })
+  .option("bagsize", {
+    alias: "b",
+    description: "The size of the IV bag to simulate (in mL)",
+    type: "number",
+    default: 500,
+  })
+  .option("flowrate", {
+    alias: "f",
+    description: "The flowrate (in mL/H)",
+    type: "number",
+    default: 75,
+  })
   .option("quiet", {
     type: "boolean",
     alias: "q",
@@ -76,6 +88,8 @@ function startSimulator(deviceKey: string): void {
 
   const simulator = new Simulator(log, iotDevice, argv.interval);
 
+  simulator.setBagsize(argv.bagsize);
+  simulator.setFlowrate(argv.flowrate);
   simulator.run();
 }
 

@@ -13,9 +13,12 @@ export class Simulator {
   private intervalTimeout: NodeJS.Timeout;
   private interval: number;
   private client: IoTDeviceClient;
+  private timeIdle: number;
+  private timeCharging: number;
 
   // Telemetry
   private messageTrackingId: number;
+  private systemState: number;
   private batteryLevel: number;
   private timeLeftOfTreatment: number;
   private liquidLeftInBag: number;
@@ -32,20 +35,42 @@ export class Simulator {
 
     // Initial telemetry values
     this.messageTrackingId = 0;
+    this.systemState = SystemState.Idle;
     this.batteryLevel = 60 + Math.random() * 40;
-    this.timeLeftOfTreatment = 12 * 60 * 60; // 12 hours in seconds
-    this.liquidLeftInBag = 840;
+    this.liquidLeftInBag = 500;
     this.flowrate = 70;
 
     // Initial properties
     this.oad = false;
     this.isSimulator = true;
+
+    this.timeIdle = 30;
+    this.timeCharging = 120;
+
+    this.setTimeLeftOfTreatment();
+  }
+
+  public setBagsize(size: number): void {
+    this.liquidLeftInBag = size;
+    this.setTimeLeftOfTreatment();
+  }
+
+  public setFlowrate(flowrate: number): void {
+    this.flowrate = flowrate;
+    this.setTimeLeftOfTreatment();
+  }
+
+  private setTimeLeftOfTreatment() {
+    this.timeLeftOfTreatment = Math.round(this.liquidLeftInBag / this.flowrate * 60 * 60);
   }
 
   public async run(): Promise<void> {
     this.log("Starting simulator");
     this.log(`- Creating device with ID: ${this.device.getDeviceId()}`);
-    this.log(`- A message with be sent every: ${this.interval / 1000} seconds"`);
+    this.log(`- A message with be sent every: ${this.interval / 1000} seconds`);
+    this.log(`- Bag size: ${this.liquidLeftInBag} mL`);
+    this.log(`- Flowrate: ${this.flowrate} mL/H`);
+    this.log(`- Time left: ${this.timeLeftOfTreatment} seconds`);
 
     this.client = await this.device.getClient();
 
@@ -69,13 +94,32 @@ export class Simulator {
 
     // Create a message and send it to the IoT Hub every X seconds
     if (!this.intervalTimeout) {
+      this.sendMessage();
+
       this.intervalTimeout = setInterval(() => {
-        const message = this.generateMessage();
-
-        this.log(`Sending message: ${message.getData()}`);
-
-        this.client.sendEvent(message, this.printResultFor("send"));
+        this.sendMessage();
       }, this.interval);
+
+      // Simulate a sequential change in system state
+      setTimeout(() => {
+        this.systemState = SystemState.Active;
+
+        setTimeout(() => {
+          this.systemState = SystemState.Charging;
+
+          setTimeout(() => {
+            this.systemState = SystemState.Finished;
+
+            setTimeout(() => {
+              clearInterval(this.intervalTimeout);
+
+              this.log("Treatment stopped.");
+
+              process.exit(0);
+            }, this.interval); // Finished time
+          }, this.timeCharging * 1000); // Charging time
+        }, (this.timeLeftOfTreatment - this.timeCharging) * 1000 - this.interval); // Active time
+      }, this.timeIdle * 1000); // Idle time
     }
 
     this.log("Getting device twin...");
@@ -145,8 +189,8 @@ export class Simulator {
     // Increment the message tracking ID
     this.messageTrackingId = this.messageTrackingId + 1;
 
-    // Decrease the battery a bit for each message
-    this.batteryLevel = this.batteryLevel - 0.05;
+    // Decrease (or increase, if charging) the battery a bit for each message
+    this.batteryLevel = this.systemState === SystemState.Charging ? this.batteryLevel + 1 : this.batteryLevel - 0.02;
 
     // Subtract time from time left of treatment
     this.timeLeftOfTreatment = this.timeLeftOfTreatment - this.interval / 1000;
@@ -156,7 +200,7 @@ export class Simulator {
 
     const data: string = JSON.stringify({
       batteryLevel: Math.round(this.batteryLevel),
-      systemState: SystemState.Active,
+      systemState: this.systemState,
       timeLeftOfTreatment: this.timeLeftOfTreatment,
       liquidLeftInBag: Math.round(this.liquidLeftInBag),
       flowrate: this.flowrate,
@@ -167,6 +211,14 @@ export class Simulator {
     message.properties.add("iothub-creation-time-utc", new Date().toISOString());
 
     return message;
+  }
+
+  public sendMessage(): void {
+    const message = this.generateMessage();
+
+    this.log(`Sending message: ${message.getData()}`);
+
+    this.client.sendEvent(message, this.printResultFor("send"));
   }
 
   public sendProperties(twin: Twin): void {
